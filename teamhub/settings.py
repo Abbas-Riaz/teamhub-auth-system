@@ -130,3 +130,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 """for using console instead of email """
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+AUTHENTICATION_BACKENDS = ["accounts.backends.EmailVerifiedBackend"]

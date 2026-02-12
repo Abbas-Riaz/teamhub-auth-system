@@ -12,6 +12,9 @@ from .serializers import RegisterSerializer
 
 from django.contrib.auth import get_user_model
 
+""" email verification servicd import from services folder """
+from accounts.services.email_verification import verify_email_token_service
+
 User = get_user_model()
 
 """
@@ -25,7 +28,41 @@ veiw for registering user :
 
 """function for verifying token """
 
+
 from accounts.utils import verify_email_token
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from accounts.services.email_verification import verify_email_token_service
+
+
+class VerifyEmailView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def get(self, request):
+        token = request.query_params.get("token")
+        if not token:
+            return Response(
+                {"error": "Invalid or expired verification link"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        result = verify_email_token_service(token)
+
+        if result == "VERIFIED":
+            return Response(
+                {"message": "Email verified successfully"}, status=status.HTTP_200_OK
+            )
+        elif result == "ALREADY_VERIFIED":
+            return Response(
+                {"message": "Email already verified"}, status=status.HTTP_200_OK
+            )
+        else:  # INVALID
+            return Response(
+                {"error": "Invalid or expired verification link"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class RegisterView(APIView):
@@ -41,36 +78,3 @@ class RegisterView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer_data.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class VerifyEmailView(APIView):
-
-    permission_classes = []
-    authentication_classes = []
-
-    def get(self, request):
-        token = request.query_params.get("token")
-
-        if not token:
-            return Response(
-                {"error": "Invalid or expired token"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        user_id = verify_email_token(token)
-
-        if not user_id:
-            return Response(
-                {"error": "user does not exists"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        user = User.objects.filter(id=user_id).first()
-
-        user.email_verified = True
-
-        user.save(update_fields=["email_verified"])
-
-        return Response(
-            {"message": "user verified sucessfully"}, status=status.HTTP_200_OK
-        )
