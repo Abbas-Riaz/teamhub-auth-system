@@ -1,5 +1,4 @@
 from django.core import signing
-from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
 
 TOKEN_SALT = (

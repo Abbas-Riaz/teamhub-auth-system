@@ -1,12 +1,13 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
-from authentication.serializers import RegisterSerializer
+from authentication.serializers import RegisterSerializer, LoginSerializer
 
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import RegisterSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 
 """import user model to make its verification successfull after verifying token"""
 
@@ -40,6 +41,10 @@ class VerifyEmailView(APIView):
     permission_classes = []
     authentication_classes = []
 
+    """first we will extract the token from query 
+       then pass this token to email verification service where it checks the token validity
+       and return an appropriate response to user after clicking on link sent in email  """
+
     def get(self, request):
         token = request.query_params.get("token")
         if not token:
@@ -68,6 +73,12 @@ class VerifyEmailView(APIView):
 class RegisterView(APIView):
 
     def post(self, request):
+        """
+        used to register a new user
+        and when data is validate sucessfully
+        promt user to check email for verifcation so we can avoid fake email registrations
+
+        """
 
         serializer_data = RegisterSerializer(data=request.data)
 
@@ -78,3 +89,23 @@ class RegisterView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer_data.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginView(APIView):
+
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+
+        if serializer.is_valid():
+
+            user = serializer.validated_data["user"]
+            refresh = RefreshToken.for_user(user)
+
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
