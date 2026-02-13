@@ -1,12 +1,17 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
-from authentication.serializers import RegisterSerializer, LoginSerializer
+from authentication.serializers import (
+    RegisterSerializer,
+    LoginSerializer,
+    ForgetPasswordSerializer,
+    ResetPasswordSerializer,
+    RegisterSerializer,
+)
 
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import RegisterSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 """import user model to make its verification successfull after verifying token"""
@@ -99,12 +104,68 @@ class LoginView(APIView):
         if serializer.is_valid():
 
             user = serializer.validated_data["user"]
+            email = user.email
             refresh = RefreshToken.for_user(user)
 
             return Response(
                 {
                     "access": str(refresh.access_token),
                     "refresh": str(refresh),
+                    "email": email,
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ForgetPasswordView(APIView):
+
+    permission_classes = []
+    authentication_classes = []
+    """
+    this view recieve a post request that contain email of user when it click forget password and enter emails
+
+    then we share a link through email to reset password
+
+    """
+
+    def post(self, request):
+        serializer = ForgetPasswordSerializer(data=request.data)
+
+        if serializer.is_valid():
+            return Response(
+                {"message": "verification email is being sent"},
+                status=status.HTTP_201_CREATED,
+            )
+
+
+class ResetPasswordView(APIView):
+    """
+    Docstring for ResetPasswordVie
+        accepts the user token along with reset pass
+        verify the token validity and change the password in db
+        consider edge cases :
+             if token is not valid or expired
+             password should not match old pass
+             validate pass and store in hash
+    """
+
+    def post(self, request):
+
+        serializer = ResetPasswordSerializer(data=request.data)
+
+        if serializer.is_valid():
+
+            user = serializer.validated_data["user"]
+
+            new_password = serializer.validated_data["new_password"]
+
+            user.set_password(new_password)
+            user.save()
+
+            return Response(
+                {
+                    "message": "Password has been reset successfully. You can now login with your new password."
                 },
                 status=status.HTTP_200_OK,
             )
