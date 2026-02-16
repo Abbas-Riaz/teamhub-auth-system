@@ -41,6 +41,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from accounts.services.email_verification import verify_email_token_service
 
+"""working with redis"""
+from django.core.cache import cache
+
 
 class VerifyEmailView(APIView):
     permission_classes = []
@@ -104,7 +107,7 @@ class LoginView(APIView):
         if serializer.is_valid():
 
             user = serializer.validated_data["user"]
-            email = user.email
+            email = serializer.validated_data["user"]
             refresh = RefreshToken.for_user(user)
 
             return Response(
@@ -155,14 +158,21 @@ class ResetPasswordView(APIView):
         serializer = ResetPasswordSerializer(data=request.data)
 
         if serializer.is_valid():
+            token = serializer.validated_data["token"]
+            cache_key = f"used_reset_token:{token}"
 
+            if cache.get(cache_key):
+                return Response(
+                    {"error": "This password reset link has already been used."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             user = serializer.validated_data["user"]
 
             new_password = serializer.validated_data["new_password"]
 
             user.set_password(new_password)
             user.save()
-
+            cache.set(cache_key, True, timeout=7200)
             return Response(
                 {
                     "message": "Password has been reset successfully. You can now login with your new password."

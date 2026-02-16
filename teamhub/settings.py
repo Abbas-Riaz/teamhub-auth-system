@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "accounts",
     "authentication",
+    "celerypractice",
 ]
 
 MIDDLEWARE = [
@@ -146,3 +147,33 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "rediss://default:AUAVAAIncDIwZTAxNDNkM2RmNmI0Y2Y5YTllNWI0ZjE1YmQzZmZlMHAyMTY0MDU@expert-kit-16405.upstash.io:6379",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "ssl_cert_reqs": None,
+            },
+        },
+    }
+}
+
+"""celery import """
+
+# settings.py
+CELERY_BROKER_URL = "rediss://default:AUAVAAIncDIwZTAxNDNkM2RmNmI0Y2Y5YTllNWI0ZjE1YmQzZmZlMHAyMTY0MDU@expert-kit-16405.upstash.io:6379"
+
+
+CELERY_RESULT_BACKEND = "django-db"
+
+INSTALLED_APPS += [
+    "django_celery_results",
+    "django_celery_beat",
+]
+
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
