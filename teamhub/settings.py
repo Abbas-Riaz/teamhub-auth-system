@@ -177,3 +177,18 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "UTC"
+
+""" using for task scheduling constantly after some times or  we can change it """
+# settings.py
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    "cleanup-unverified-users": {
+        "task": "accounts.tasks.cleanup_unverified_users",
+        "schedule": crontab(hour=2, minute=0),  # Every day at 2 AM
+    },
+    "cleanup-tokens": {
+        "task": "accounts.tasks.cleanup_password_reset_tokens",
+        "schedule": crontab(hour="*/6"),  # Every 6 hours
+    },
+}

@@ -92,6 +92,7 @@ class RegisterView(APIView):
 
         if serializer_data.is_valid():
             serializer_data.save()
+
             return Response(
                 {"message": "verification email is being sent"},
                 status=status.HTTP_201_CREATED,

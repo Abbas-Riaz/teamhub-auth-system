@@ -42,7 +42,8 @@ class RegisterSerializer(serializers.Serializer):
             email_verified=False,
         )
 
-        send_verification_email(user)
+        send_verification_email.delay(user.id)
+
         return user
 
 
@@ -81,7 +82,7 @@ class ForgetPasswordSerializer(serializers.Serializer):
         if not user:
             raise serializers.ValidationError("please enter a valid email adress")
 
-        send_forgetpassword_email(user)
+        send_forgetpassword_email.delay(user.id)
 
         return attrs
 
