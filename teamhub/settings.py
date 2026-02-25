@@ -42,7 +42,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "accounts",
     "authentication",
+    "organizations",
     "celerypractice",
+    "django_ratelimit",
 ]
 
 MIDDLEWARE = [

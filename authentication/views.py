@@ -44,6 +44,11 @@ from accounts.services.email_verification import verify_email_token_service
 """working with redis"""
 from django.core.cache import cache
 
+"""rate limiting implementation in django """
+
+from django_ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
+
 
 class VerifyEmailView(APIView):
     permission_classes = []
@@ -100,9 +105,13 @@ class RegisterView(APIView):
         return Response(serializer_data.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# @ratelimit(key="ip", rate="5/m", method="POST")
 class LoginView(APIView):
-
+    @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=False))
     def post(self, request):
+        """for checking user frequently try to logging in"""
+        if getattr(request, "limited", False):
+            return Response({"error": "too many requests "}, status=429)
         serializer = LoginSerializer(data=request.data)
 
         if serializer.is_valid():
