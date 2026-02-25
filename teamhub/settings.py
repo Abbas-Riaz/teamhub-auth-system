@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,6 +42,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "accounts",
     "authentication",
+    "organizations",
+    "celerypractice",
+    "django_ratelimit",
 ]
 
 MIDDLEWARE = [
@@ -127,7 +132,65 @@ AUTH_USER_MODEL = "accounts.User"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+
+
 """for using console instead of email """
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 AUTHENTICATION_BACKENDS = ["accounts.backends.EmailVerifiedBackend"]
+
+"""life time of acesss and refresh token"""
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+}
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "rediss://default:AUAVAAIncDIwZTAxNDNkM2RmNmI0Y2Y5YTllNWI0ZjE1YmQzZmZlMHAyMTY0MDU@expert-kit-16405.upstash.io:6379",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "ssl_cert_reqs": None,
+            },
+        },
+    }
+}
+
+"""celery import """
+
+# settings.py
+CELERY_BROKER_URL = "rediss://default:AUAVAAIncDIwZTAxNDNkM2RmNmI0Y2Y5YTllNWI0ZjE1YmQzZmZlMHAyMTY0MDU@expert-kit-16405.upstash.io:6379"
+
+
+CELERY_RESULT_BACKEND = "django-db"
+
+INSTALLED_APPS += [
+    "django_celery_results",
+    "django_celery_beat",
+]
+
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
+
+""" using for task scheduling constantly after some times or  we can change it """
+# settings.py
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    "cleanup-unverified-users": {
+        "task": "accounts.tasks.cleanup_unverified_users",
+        "schedule": crontab(hour=2, minute=0),  # Every day at 2 AM
+    },
+    "cleanup-tokens": {
+        "task": "accounts.tasks.cleanup_password_reset_tokens",
+        "schedule": crontab(hour="*/6"),  # Every 6 hours
+    },
+}
