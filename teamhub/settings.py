@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 from datetime import timedelta
 
@@ -149,25 +150,32 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "rediss://default:AUAVAAIncDIwZTAxNDNkM2RmNmI0Y2Y5YTllNWI0ZjE1YmQzZmZlMHAyMTY0MDU@expert-kit-16405.upstash.io:6379",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "ssl_cert_reqs": None,
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": {
+                    "ssl_cert_reqs": None,
+                },
             },
-        },
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "teamhub-local-cache",
+        }
+    }
 
 """celery import """
 
-# settings.py
-CELERY_BROKER_URL = "rediss://default:AUAVAAIncDIwZTAxNDNkM2RmNmI0Y2Y5YTllNWI0ZjE1YmQzZmZlMHAyMTY0MDU@expert-kit-16405.upstash.io:6379"
-
-
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = "django-db"
 
 INSTALLED_APPS += [
@@ -179,6 +187,18 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "UTC"
+
+if not CELERY_BROKER_URL:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+
+RATELIMIT_ENABLE = bool(REDIS_URL)
+
+if not REDIS_URL:
+    SILENCED_SYSTEM_CHECKS = [
+        "django_ratelimit.E003",
+        "django_ratelimit.W001",
+    ]
 
 """ using for task scheduling constantly after some times or  we can change it """
 # settings.py
