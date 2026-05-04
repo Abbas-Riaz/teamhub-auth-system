@@ -124,3 +124,173 @@ class OrganizationDetailView(APIView):
             {"message": "Organization deleted successfully"},
             status=status.HTTP_204_NO_CONTENT,
         )
+
+
+"""========   VIEWS FOR HANDLING INVITATION AND JOINING OF MEMBERS IN ORG """
+
+
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import Organization, Invitation, OrganizationMembership
+from .serializers import (
+    InviteUserSerializer,
+    InvitationSerializer,
+    AcceptInvitationSerializer,
+    OrganizationSerializer,
+)
+from django.shortcuts import get_object_or_404
+
+
+class InviteUserView(APIView):
+    """
+    Invite user to organization
+    POST /api/organizations/{id}/invite/
+
+    Only owner and admins can invite
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        # Get organization - user must be member
+        organization = get_object_or_404(Organization, pk=pk, members=request.user)
+
+        # Check if user is owner or admin (only they can invite)
+        try:
+            membership = OrganizationMembership.objects.get(
+                organization=organization, user=request.user
+            )
+
+            if membership.role not in ["owner", "admin"]:
+                return Response(
+                    {"error": "Only owners and admins can invite users."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        except OrganizationMembership.DoesNotExist:
+            return Response(
+                {"error": "You are not a member of this organization."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Validate and create invitation
+        serializer = InviteUserSerializer(
+            data=request.data,
+            context={"organization": organization, "invited_by": request.user},
+        )
+
+        if serializer.is_valid():
+            invitation = serializer.save()
+
+            # TODO: Send invitation email via Celery
+            # send_invitation_email.delay(invitation.id)
+
+            return Response(
+                {
+                    "message": f"Invitation sent to {invitation.email}",
+                    "invitation": InvitationSerializer(invitation).data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InvitationListView(APIView):
+    """
+    List current user's pending invitations
+    GET /api/invitations/
+
+    Shows all invites sent to user's email
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Get all pending invitations for user's email
+        invitations = Invitation.objects.filter(
+            email=request.user.email, status="pending"
+        ).select_related(
+            "organization", "invited_by"
+        )  # Optimize queries
+
+        serializer = InvitationSerializer(invitations, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AcceptInvitationView(APIView):
+    """
+    Accept invitation to join organization
+    POST /api/invitations/{id}/accept/
+
+    Creates membership and updates invitation status
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        # Get invitation
+        invitation = get_object_or_404(Invitation, pk=pk)
+
+        # Validate and accept
+        serializer = AcceptInvitationSerializer(
+            data={}, context={"invitation": invitation, "user": request.user}
+        )
+
+        if serializer.is_valid():
+            membership = serializer.save()
+
+            # Return organization details
+            org_serializer = OrganizationSerializer(
+                invitation.organization, context={"request": request}
+            )
+
+            return Response(
+                {
+                    "message": f"Successfully joined {invitation.organization.name}",
+                    "organization": org_serializer.data,
+                    "role": membership.role,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeclineInvitationView(APIView):
+    """
+    Decline invitation
+    POST /api/invitations/{id}/decline/
+
+    Updates invitation status to 'declined'
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        # Get invitation
+        invitation = get_object_or_404(Invitation, pk=pk)
+
+        # Check email matches
+        if invitation.email != request.user.email:
+            return Response(
+                {"error": "This invitation was not sent to you."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Check if already processed
+        if invitation.status != "pending":
+            return Response(
+                {"error": f"This invitation has already been {invitation.status}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Update status
+        invitation.status = "declined"
+        invitation.save()
+
+        return Response(
+            {"message": "Invitation declined successfully."}, status=status.HTTP_200_OK
+        )
