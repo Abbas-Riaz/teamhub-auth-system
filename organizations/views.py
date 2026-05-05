@@ -141,6 +141,7 @@ from .serializers import (
     OrganizationSerializer,
 )
 from django.shortcuts import get_object_or_404
+from .tasks import send_invitation_email
 
 
 class InviteUserView(APIView):
@@ -183,7 +184,9 @@ class InviteUserView(APIView):
         if serializer.is_valid():
             invitation = serializer.save()
 
-            # TODO: Send invitation email via Celery
+            # Send invitation email asynchronously
+
+            send_invitation_email.delay(str(invitation.id))
             # send_invitation_email.delay(invitation.id)
 
             return Response(
@@ -208,12 +211,13 @@ class InvitationListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Get all pending invitations for user's email
+
+        # Get all pending invitations for user's email like user have how many pending request
         invitations = Invitation.objects.filter(
             email=request.user.email, status="pending"
         ).select_related(
             "organization", "invited_by"
-        )  # Optimize queries
+        )  # Optimize queries by using select related
 
         serializer = InvitationSerializer(invitations, many=True)
 
