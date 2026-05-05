@@ -117,7 +117,7 @@ class LoginView(APIView):
         if serializer.is_valid():
 
             user = serializer.validated_data["user"]
-            email = serializer.validated_data["user"]
+            email = user.email
             refresh = RefreshToken.for_user(user)
 
             return Response(

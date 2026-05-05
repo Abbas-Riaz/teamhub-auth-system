@@ -1,5 +1,6 @@
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 User = get_user_model()
 
@@ -9,13 +10,20 @@ class EmailVerifiedBackend(ModelBackend):
         if not username or not password:
             return None
 
-        try:
-            user = User.objects.get(email=username)
-        except User.DoesNotExist:
+        user = User.objects.filter(
+            Q(email__iexact=username) | Q(username__iexact=username)
+        ).first()
+        if not user:
             return None
 
         if not user.check_password(password):
             return None
+
+        if not self.user_can_authenticate(user):
+            return None
+
+        if user.is_superuser:
+            return user
 
         if not user.email_verified:
             return None
