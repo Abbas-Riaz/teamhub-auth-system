@@ -1,6 +1,5 @@
 # Ignore media files
 media/
-api.http
 practice-python.py
 # NOTE: `docker-compose.yml` is a required deliverable for Issue #15 and should be tracked.
 # Avoid adding an ignore rule for it in this file.

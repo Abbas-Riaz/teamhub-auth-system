@@ -1,0 +1,146 @@
+### Register a new user - Success
+POST http://127.0.0.1:8000/api/auth/register/
+Content-Type: application/json
+
+{
+    "email": "testuser100@example.com",
+    "password": "StrongPass@123",
+    "password2": "StrongPass@123"
+}
+
+###
+GET http://localhost:8000/api/auth/verify-email/?token=Ng:1vqqNj:ElVaKEQOtM3NhV7Hx3NPrxhg2XiqM0zV7eVzlwqN5ZM
+
+
+###
+
+POST http://127.0.0.1:8000/api/auth/login/
+Content-Type: application/json
+
+{
+    "email": "testuser10@example.com",
+    "password": "StrongPass@123"
+    
+}
+
+###
+
+POST http://127.0.0.1:8000/api/auth/forget-password/
+Content-Type: application/json
+
+{
+    "email": "testuser1@example.com"
+    
+}
+
+###
+### Reset Password - Use Token from Email
+POST http://localhost:8000/api/auth/reset-password/
+Content-Type: application/json
+
+{
+  "token": "Mw:1vr98n:EyLzqWQEpJeGv9rzEgt-d30KK08o40xfGRzm2yk0Ffk",
+  "new_password": "mynewpassword123",
+  "confirm_password": "mynewpassword123"
+}
+
+###
+### Test List Organizations
+GET http://localhost:8000/api/organizations/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc3NjIwMTE0LCJpYXQiOjE3Nzc2MTkyMTQsImp0aSI6ImRlNzVjNzJlZjNkNzQ1NTg4MGNhYTk1ODY1NTc4NmU4IiwidXNlcl9pZCI6IjE2In0.V6UlVJxaEE2AW14rkpTzeO-57WCXwVAar9T9KG4qN8c
+
+### Test Create Organization
+POST http://localhost:8000/api/organizations/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc3NjIwMTE0LCJpYXQiOjE3Nzc2MTkyMTQsImp0aSI6ImRlNzVjNzJlZjNkNzQ1NTg4MGNhYTk1ODY1NTc4NmU4IiwidXNlcl9pZCI6IjE2In0.V6UlVJxaEE2AW14rkpTzeO-57WCXwVAar9T9KG4qN8c
+Content-Type: application/json
+
+{
+  "name": "My Company new ",
+  "description": "Test organization"
+}
+
+###
+### Test Organization Detail
+### Test Organization Detail View
+GET http://localhost:8000/api/organizations/0b5462de-9846-4d85-b0ca-7854e5d1063d/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc4MDUyMTQ4LCJpYXQiOjE3NzgwNTEyNDgsImp0aSI6ImViZDk3MDlhNGIwMDQxYmJhNGM1NmIyODNlNzhhNGRmIiwidXNlcl9pZCI6IjE2In0.cFNRF_aH8RV9EKUeJ0mNcc6Du32IL2hwK2VDCKTH1f8
+
+
+
+
+
+
+###
+@baseUrl = http://localhost:8000/api
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc4MDUzMjg3LCJpYXQiOjE3NzgwNTIzODcsImp0aSI6IjM5MDk5ZWZiYzg3ZTQ5ZTFhYjMzYzE4MGFlNDkwY2E3IiwidXNlcl9pZCI6IjYifQ.nG-FWJQOamk3v2mWooHz8S7zb6-HG1Dg-GQHZhujq_o
+@orgId = 0b5462de-9846-4d85-b0ca-7854e5d1063d
+
+### ==========================================
+### INVITATIONS
+### ==========================================
+
+### Invite User to Organization
+POST {{baseUrl}}/organizations/{{orgId}}/invite/
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "email": "testuser10@example.com",
+  "role": "member"
+}
+
+### === test for invitation in org accept decline and invite user ===== ##
+
+### Invite as Admin
+POST {{baseUrl}}/organizations/{{orgId}}/invite/
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "role": "admin"
+}
+
+###
+
+### List My Pending Invitations
+GET {{baseUrl}}/invitations/
+Authorization: Bearer {{authToken}}
+
+###
+
+### Accept Invitation
+POST {{baseUrl}}/invitations/9cd471a5-737b-45b3-aca4-37b5bc2c98e4/accept/
+Authorization: Bearer {{authToken}}
+
+###
+
+### Decline Invitation
+POST {{baseUrl}}/invitations/INVITATION_ID_HERE/decline/
+Authorization: Bearer {{authToken}}
+
+###
+
+### Test: Invite Already Member (Should Fail)
+POST {{baseUrl}}/organizations/{{orgId}}/invite/
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "email": "existing_member@example.com",
+  "role": "member"
+}
+
+###
+
+### Test: Duplicate Invite (Should Fail)
+POST {{baseUrl}}/organizations/{{orgId}}/invite/
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "email": "newuser@example.com",
+  "role": "member"
+}
+
+###
