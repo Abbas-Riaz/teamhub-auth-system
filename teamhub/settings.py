@@ -86,11 +86,13 @@ WSGI_APPLICATION = "teamhub.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+import dj_database_url
+from decouple import config
+
+# Production: PostgreSQL (Render)
+# Local: SQLite (fallback)
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.config(default=f"sqlite:///{BASE_DIR}/db.sqlite3")
 }
 
 
@@ -156,6 +158,11 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 REDIS_URL = os.getenv("REDIS_URL", "").strip()
+if REDIS_URL:
+    CELERY_BROKER_URL = REDIS_URL  # Where Celery stores tasks
+    CELERY_RESULT_BACKEND = REDIS_URL  # Where Celery stores results
+    CELERY_BROKER_USE_SSL = {...}  # Secure connection to Redis
+    CELERY_REDIS_BACKEND_USE_SSL = {...}  # Secure connection for results
 
 if REDIS_URL:
     CACHES = {
@@ -180,7 +187,6 @@ else:
 
 """celery import """
 
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = "django-db"
 
 INSTALLED_APPS += [
