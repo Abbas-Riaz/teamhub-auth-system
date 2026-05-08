@@ -159,6 +159,8 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
+
+CELERY_BROKER_URL = None
 REDIS_URL = os.getenv("REDIS_URL", "").strip()
 if REDIS_URL:
     CELERY_BROKER_URL = REDIS_URL  # Where Celery stores tasks
