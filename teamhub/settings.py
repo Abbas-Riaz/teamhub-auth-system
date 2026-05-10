@@ -133,6 +133,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"  # Required for collectstatic
 
 # custome user model registrations
 AUTH_USER_MODEL = "accounts.User"
